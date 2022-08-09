@@ -1,0 +1,23 @@
+{
+  "name": "hardhat-project",
+  "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.1",
+    "@openzeppelin/contracts": "^2.5.0",
+    "@uniswap/lib": "^4.0.1-alpha",
+    "@uniswap/v2-core": "^1.0.1",
+    "chai": "^4.3.6",
+    "chai-as-promised": "^7.1.1",
+    "dotenv": "^16.0.0",
+    "ethers": "^5.6.9",
+    "hardhat": "^2.0.10"
+  },
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "moonbeam": "npx hardhat run --network moonbeam scripts/deploy.js",
+    "ganache": "npx hardhat run --network ganache scripts/deploy.js",
+    "test": "npx hardhat test"
+  },
+  "devDependencies": {
+    "solpp": "^0.11.5"
+  }
+}

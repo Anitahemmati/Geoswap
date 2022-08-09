@@ -1,0 +1,169 @@
+const { BigNumber } = require("ethers");
+
+const { assert } = require("chai");
+
+const Factory = artifacts.require("GeosFactory");
+const Router02 = artifacts.require("Router02");
+const TokenA = artifacts.require("TokenA");
+const TokenB = artifacts.require("TokenB");
+const TokenC = artifacts.require("TokenC");
+const WETH = artifacts.require("WETH");
+
+require("chai").use(require("chai-as-promi Fsed")).should();
+
+contract("Factory && Router", ([owner1, owner2]) => {
+  let factory,
+    tokenA,
+    tokenB,
+    tokenC,
+    tokenAAddress,
+    tokenBAddress,
+    tokenCAddress,
+    router02,
+    weth;
+
+  before(async () => {
+    factory = await Factory.new(owner1);
+    tokenA = await TokenA.new();
+    tokenB = await TokenB.new();
+    tokenC = await TokenC.new();
+    weth = await WETH.new();
+    router02 = await Router02.new(await factory.address, await weth.address);
+
+    tokenAAddress = await tokenA.address;
+    tokenBAddress = await tokenB.address;
+    tokenCAddress = await tokenC.address;
+
+    console.log("tokenAAddress", tokenAAddress);
+    console.log("tokenBAddress", tokenBAddress);
+    console.log("tokenCAddress", tokenCAddress);
+  });
+
+  describe("deployment", () => {
+    it("deploys Factory successfully", async () => {
+      const factoryAddress = await factory.address;
+      assert.notEqual(factoryAddress, 0x0);
+      assert.notEqual(factoryAddress, "");
+      assert.notEqual(factoryAddress, null);
+      assert.notEqual(factoryAddress, undefined);
+    });
+
+    it("deploys Router successfully", async () => {
+      const solarRouter02Address = await router02.address;
+      assert.notEqual(solarRouter02Address, 0x0);
+      assert.notEqual(solarRouter02Address, "");
+      assert.notEqual(solarRouter02Address, null);
+      assert.notEqual(solarRouter02Address, undefined);
+    });
+
+    it("allPairsLength lengh should be 0", async () => {
+      const allPairsLength = await factory.allPairsLength();
+      assert.equal(allPairsLength, 0);
+    });
+
+    it("createPair should create a new pair A,B", async () => {
+      await factory.createPair(tokenAAddress, tokenBAddress);
+      const allPairsLength = await factory.allPairsLength();
+      assert.equal(allPairsLength, 1);
+
+      const pair = await factory.allPairs(0);
+      console.log("A,B => pair(0)", pair);
+    });
+
+    it("createPair should create a new pair A,C", async () => {
+      await factory.createPair(tokenAAddress, tokenCAddress);
+      const allPairsLength = await factory.allPairsLength();
+      assert.equal(allPairsLength, 2);
+
+      const pair = await factory.allPairs(1);
+      console.log("A,C => pair(1)", pair);
+    });
+
+    it("should set fee to owner2", async () => {
+      await factory.setFeeTo(owner2);
+      const feeTo = await factory.feeTo();
+      assert.equal(feeTo, owner2);
+    });
+
+    it("should set Migrator to owner2", async () => {
+      await factory.setMigrator(owner2);
+      const migrator = await factory.migrator();
+      assert.equal(migrator, owner2);
+    });
+
+    it("should set 'setFeeToSetter' to owner2", async () => {
+      await factory.setFeeToSetter(owner2);
+      const setFeeToSetter = await factory.feeToSetter();
+      assert.equal(setFeeToSetter, owner2);
+    });
+
+    it("should add addLiquidity", async () => {
+      const amoutA = await tokenA.balanceOf(owner1);
+      // const amoutB = await tokenB.balanceOf(owner1);
+      // const amoutC = await tokenC.balanceOf(owner1);
+
+      // console.log("amoutC", amoutC.toString());
+
+      await factory.createPair(tokenBAddress, tokenCAddress);
+
+      const amout = amoutA;
+
+      await tokenA.approve(router02.address, amout);
+      await tokenB.approve(router02.address, amout);
+      await tokenC.approve(router02.address, amout);
+
+      const allowanceA = await tokenA.allowance(owner1, router02.address);
+      const allowanceB = await tokenB.allowance(owner1, router02.address);
+      const allowanceC = await tokenC.allowance(owner1, router02.address);
+
+      assert.equal(allowanceA.toString(), amout.toString());
+      assert.equal(allowanceB.toString(), amout.toString());
+      assert.equal(allowanceC.toString(), amout.toString());
+
+      await router02.addLiquidity(
+        tokenBAddress,
+        tokenCAddress,
+        100,
+        100,
+        1,
+        1,
+        owner1,
+        Math.floor(Date.now() / 1000) + 60 * 10
+      );
+    });
+  });
+});
+
+// 
+// THIS IS FRONTEND CODE
+// 
+// if (currencyA.isNative || currencyB.isNative) {
+//   const tokenBIsETH = currencyB.isNative;
+//   estimate = routerContract.estimateGas.addLiquidityETH;
+//   method = routerContract.addLiquidityETH;
+//   args = [
+//     (tokenBIsETH ? currencyA : currencyB)?.wrapped?.address ?? "", // token
+//     (tokenBIsETH ? parsedAmountA : parsedAmountB).quotient.toString(), // token desired
+//     amountsMin[tokenBIsETH ? Field.CURRENCY_A : Field.CURRENCY_B].toString(), // token min
+//     amountsMin[tokenBIsETH ? Field.CURRENCY_B : Field.CURRENCY_A].toString(), // eth min
+//     account,
+//     deadline.toHexString(),
+//   ];
+//   value = BigNumber.from(
+//     (tokenBIsETH ? parsedAmountB : parsedAmountA).quotient.toString()
+//   );
+// } else {
+//   estimate = routerContract.estimateGas.addLiquidity;
+//   method = routerContract.addLiquidity;
+//   args = [
+//     currencyA?.wrapped?.address ?? "",
+//     currencyB?.wrapped?.address ?? "",
+//     parsedAmountA.quotient.toString(),
+//     parsedAmountB.quotient.toString(),
+//     amountsMin[Field.CURRENCY_A].toString(),
+//     amountsMin[Field.CURRENCY_B].toString(),
+//     account,
+//     deadline.toHexString(),
+//   ];
+//   value = null;
+// }
